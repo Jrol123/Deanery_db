@@ -18,6 +18,8 @@ CREATE TABLE Teachers
     'Date of birth' date
 );
 
+--TODO: Починить связь между специализациями и группами. Через изменение внешнего ключа или через триггер.
+
 CREATE TABLE Specializations
 (
     'Code group'     INTEGER(2)   NOT NULL,
