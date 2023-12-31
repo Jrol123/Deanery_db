@@ -1,8 +1,8 @@
 DROP TABLE IF EXISTS Teachers;
 DROP TABLE IF EXISTS Specializations;
-DROP VIEW IF EXISTS Specializations_merge;
+-- DROP VIEW IF EXISTS Specializations_merge;
 DROP TABLE IF EXISTS Groups;
-DROP VIEW IF EXISTS Group_merge;
+-- DROP VIEW IF EXISTS Groups_merge;
 DROP TABLE IF EXISTS Students;
 DROP TABLE IF EXISTS Activity;
 DROP TABLE IF EXISTS Disciplines;
@@ -22,30 +22,22 @@ CREATE TABLE Teachers
 
 CREATE TABLE Specializations
 (
-    'Code group'     INTEGER(2)   NOT NULL,
-    'Code education' INTEGER(2)   NOT NULL,
-    'Code work'      INTEGER(2)   NOT NULL,
+    'Code group'     varchar(2)   NOT NULL,
+    'Code education' varchar(2)   NOT NULL,
+    'Code work'      varchar(2)   NOT NULL,
     Name             varchar(100) NOT NULL UNIQUE,
     PRIMARY KEY ('Code group', 'Code education', 'Code work')
 );
 
-CREATE VIEW Specializations_merge
-AS
-SELECT 'Code group' || '.' || 'Code education' || '.' || 'Code work' AS ID_spec
-FROM Specializations;
-
 CREATE TABLE Groups
 (
-    Year_start     INTEGER(4) NOT NULL,
-    Specialization varchar(9) NOT NULL,
-    PRIMARY KEY (Year_start, Specialization),
-    FOREIGN KEY (Specialization) REFERENCES Specializations_merge (ID_spec)
+    Year_start       INTEGER(4) NOT NULL,
+    'Code group'     varchar(2) NOT NULL,
+    'Code education' varchar(2) NOT NULL,
+    'Code work'      varchar(2) NOT NULL,
+    PRIMARY KEY (Year_start, 'Code group', 'Code education', 'Code work'),
+    FOREIGN KEY ('Code group', 'Code education', 'Code work') REFERENCES Specializations ON DELETE RESTRICT
 );
-
-CREATE VIEW Group_merge
-AS
-SELECT Year_start || '-' || Specialization AS ID_group
-FROM Groups;
 
 CREATE TABLE Students
 (
@@ -62,9 +54,21 @@ CREATE TABLE Activity
     ID_group    varchar(14)                          NOT NULL,
     Status      INTEGER(1) CHECK ( Status IN (0, 1)) NOT NULL,
     PRIMARY KEY (ID_student, ID_group, Date_active),
-    FOREIGN KEY (ID_group) REFERENCES Group_merge (ID_group),
-    FOREIGN KEY (ID_student) REFERENCES Students (ID_certificate)
+    FOREIGN KEY (ID_group) REFERENCES Groups,
+    FOREIGN KEY (ID_student) REFERENCES Students
 );
+
+CREATE VIEW Activity_group AS
+SELECT ID_student, Date_active, ID_group, Sp.Name, Year_start
+FROM Activity
+         JOIN main.Students S ON S.ID_certificate = Activity.ID_student
+         JOIN Groups G ON (G.Year_start || '-' || G."Code group" || '-' || G."Code education" || '-' || G."Code work") =
+                          Activity.ID_group
+         JOIN Specializations Sp ON G."Code group" = Sp."Code group" and G."Code education" = Sp."Code education" and
+                                    G."Code work" = Sp."Code work";
+
+-- Оно позволяет делать REFERENCES относительно таблиц. Но как она это делает...?
+-- Теперь cделана view
 
 CREATE TABLE Disciplines
 (
@@ -83,7 +87,7 @@ CREATE TABLE Subjects
     Teacher    INTEGER,
     PRIMARY KEY (Discipline, Group_name, Date_year, Date_sem),
     FOREIGN KEY (Discipline) REFERENCES Disciplines (Name),
-    FOREIGN KEY (Group_name) REFERENCES Group_merge (ID_group),
+    FOREIGN KEY (Group_name) REFERENCES Groups,
     FOREIGN KEY (Teacher) REFERENCES Teachers (ID)
 );
 
@@ -98,7 +102,7 @@ CREATE TABLE Grades
     Discipline varchar(100) NOT NULL,
     Date_year  INTEGER(4)   NOT NULL,
     Date_sem   INTEGER(1)   NOT NULL,
-    FOREIGN KEY (Student) REFERENCES Students (ID_certificate),
+    FOREIGN KEY (Student) REFERENCES Students (ID_certificate) ON DELETE RESTRICT,
     FOREIGN KEY (Discipline, Group_name, Date_year, Date_sem) REFERENCES Subjects (Discipline, Group_name, Date_year, Date_sem)
     -- Насколько необходимо постоянно писать NotNull, если в ForeignKey перечислены сразу все строки...
 );
