@@ -86,7 +86,7 @@ CREATE TABLE Subjects
     Grade_type INTEGER(1) CHECK ( Grade_type IN (1, 2))                 NOT NULL,
     Teacher    INTEGER,
     PRIMARY KEY (Discipline, Group_name, Date_year, Date_sem),
-    FOREIGN KEY (Discipline) REFERENCES Disciplines (Name),
+    FOREIGN KEY (Discipline) REFERENCES Disciplines (Name) ON DELETE RESTRICT,
     FOREIGN KEY (Group_name) REFERENCES Groups,
     FOREIGN KEY (Teacher) REFERENCES Teachers (ID)
 );
