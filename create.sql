@@ -5,6 +5,7 @@ DROP TABLE IF EXISTS Groups;
 -- DROP VIEW IF EXISTS Groups_merge;
 DROP TABLE IF EXISTS Students;
 DROP TABLE IF EXISTS Activity;
+DROP VIEW IF EXISTS Activity_group;
 DROP TABLE IF EXISTS Disciplines;
 DROP TABLE IF EXISTS Subjects;
 DROP TABLE IF EXISTS Grades;
@@ -31,12 +32,10 @@ CREATE TABLE Specializations
 
 CREATE TABLE Groups
 (
-    Year_start       INTEGER(4) NOT NULL,
-    'Code group'     varchar(2) NOT NULL,
-    'Code education' varchar(2) NOT NULL,
-    'Code work'      varchar(2) NOT NULL,
-    PRIMARY KEY (Year_start, 'Code group', 'Code education', 'Code work'),
-    FOREIGN KEY ('Code group', 'Code education', 'Code work') REFERENCES Specializations ON DELETE RESTRICT
+    Year_start     INTEGER(4) NOT NULL,
+    Specialization varchar(8) NOT NULL,
+    PRIMARY KEY (Year_start, Specialization),
+    FOREIGN KEY (Specialization) REFERENCES Specializations ON DELETE RESTRICT
 );
 
 CREATE TABLE Students
@@ -51,7 +50,7 @@ CREATE TABLE Activity
 (
     ID_student  INTEGER                              NOT NULL,
     Date_active date                                 NOT NULL,
-    ID_group    varchar(14)                          NOT NULL,
+    ID_group    varchar(13)                          NOT NULL,
     Status      INTEGER(1) CHECK ( Status IN (0, 1)) NOT NULL,
     PRIMARY KEY (ID_student, ID_group, Date_active),
     FOREIGN KEY (ID_group) REFERENCES Groups,
@@ -62,10 +61,10 @@ CREATE VIEW Activity_group AS
 SELECT ID_student, Date_active, ID_group, Sp.Name, Year_start
 FROM Activity
          JOIN main.Students S ON S.ID_certificate = Activity.ID_student
-         JOIN Groups G ON (G.Year_start || '-' || G."Code group" || '-' || G."Code education" || '-' || G."Code work") =
+         JOIN Groups G ON (G.Year_start || '-' || G.Specialization) =
                           Activity.ID_group
-         JOIN Specializations Sp ON G."Code group" = Sp."Code group" and G."Code education" = Sp."Code education" and
-                                    G."Code work" = Sp."Code work";
+         JOIN Specializations Sp ON (Sp."Code group" || '-' || Sp."Code education" || '-' || Sp."Code work") =
+                                    G.Specialization;
 
 -- Оно позволяет делать REFERENCES относительно таблиц. Но как она это делает...?
 -- Теперь cделана view
