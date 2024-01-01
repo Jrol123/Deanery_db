@@ -50,16 +50,12 @@ CREATE TRIGGER prevent_spec_deletion
 BEGIN
     SELECT CASE
                WHEN EXISTS (SELECT 1
-                            FROM Groups JOIN Specializations_merge Sm on Groups.Specialization = Sm.ID_spec
+                            FROM Groups
+                                     JOIN Specializations_merge Sm on Groups.Specialization = Sm.ID_spec
                             WHERE Specialization = Sm.ID_spec)
                    THEN RAISE(ABORT, 'Существует группа, привязанная к данной специализации')
                END;
 END;
-
-CREATE VIEW Group_merge
-AS
-SELECT Year_start || '-' || Specialization AS ID_group
-FROM Groups;
 
 CREATE TABLE Students
 (
@@ -71,12 +67,13 @@ CREATE TABLE Students
 
 CREATE TABLE Activity
 (
-    ID_student  INTEGER                              NOT NULL,
-    Date_active date                                 NOT NULL,
-    ID_group    varchar(14)                          NOT NULL,
-    Status      INTEGER(1) CHECK ( Status IN (0, 1)) NOT NULL,
-    PRIMARY KEY (ID_student, ID_group, Date_active),
-    FOREIGN KEY (ID_group) REFERENCES Group_merge (ID_group),
+    ID_student     INTEGER                              NOT NULL,
+    Date_active    date                                 NOT NULL,
+    Year_start     varchar(4)                           NOT NULL,
+    Specialization varchar(8)                           NOT NULL,
+    Status         INTEGER(1) CHECK ( Status IN (0, 1)) NOT NULL,
+    PRIMARY KEY (ID_student, Year_start, Specialization, Date_active),
+    FOREIGN KEY (Year_start, Specialization) REFERENCES Groups (Year_start, Specialization),
     FOREIGN KEY (ID_student) REFERENCES Students (ID_certificate)
 );
 
@@ -103,7 +100,7 @@ CREATE TABLE Subjects
 
 -- Необходимо определить, как связать оценки и предмет.
 -- Может, будет лучше связать их с дисциплиной?
--- Или просто добавить доп поля. Думаю, так будет лучше.
+-- Или просто добавить доп. поля... Думаю, с доп. полями будет лучше.
 
 CREATE TABLE Grades
 (
