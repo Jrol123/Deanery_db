@@ -22,22 +22,22 @@ CREATE TABLE Teachers
 
 CREATE TABLE Specializations
 (
-    'Code group'     INTEGER(2)   NOT NULL,
-    'Code education' INTEGER(2)   NOT NULL,
-    'Code work'      INTEGER(2)   NOT NULL,
+    'Code group'     varchar(2)   NOT NULL,
+    'Code education' varchar(2)   NOT NULL,
+    'Code work'      varchar(2)   NOT NULL,
     Name             varchar(100) NOT NULL UNIQUE,
     PRIMARY KEY ('Code group', 'Code education', 'Code work')
 );
 
 CREATE VIEW Specializations_merge
 AS
-SELECT 'Code group' || '.' || 'Code education' || '.' || 'Code work' AS ID_spec
+SELECT "Code group" || '.' || "Code education" || '.' || "Code work" AS ID_spec
 FROM Specializations;
 
 CREATE TABLE Groups
 (
     Year_start     INTEGER(4) NOT NULL,
-    Specialization varchar(9) NOT NULL,
+    Specialization varchar(8) NOT NULL,
     PRIMARY KEY (Year_start, Specialization),
     FOREIGN KEY (Specialization) REFERENCES Specializations_merge (ID_spec)
 );
