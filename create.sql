@@ -3,6 +3,7 @@ DROP TABLE IF EXISTS Specializations;
 DROP VIEW IF EXISTS Specializations_merge;
 DROP TABLE IF EXISTS Groups;
 DROP TRIGGER IF EXISTS prevent_spec_deletion;
+DROP TRIGGER IF EXISTS prevent_group_deletion;
 DROP TABLE IF EXISTS Students;
 DROP TABLE IF EXISTS Activity;
 DROP TABLE IF EXISTS Disciplines;
@@ -51,8 +52,23 @@ BEGIN
                WHEN EXISTS (SELECT 1
                             FROM Groups
                                      JOIN Specializations_merge Sm on Groups.Specialization = Sm.ID_spec
-                            WHERE Specialization = Sm.ID_spec)
+                            WHERE Specialization == Sm.ID_spec)
                    THEN RAISE(ABORT, 'Существует группа, привязанная к данной специализации!')
+               END;
+END;
+
+-- TODO: Дописать триггер
+CREATE TRIGGER prevent_group_deletion
+    BEFORE DELETE
+    ON Groups
+    FOR EACH ROW
+BEGIN
+    SELECT CASE
+               WHEN EXISTS (SELECT 1
+                            FROM Activity A
+                            WHERE Status == 1
+                              and OLD.Specialization == A.Specialization)
+                   THEN RAISE(ABORT, 'К этой группе ещё привязаны студенты, которые не закончили обучение!')
                END;
 END;
 
