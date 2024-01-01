@@ -3,7 +3,6 @@ DROP TABLE IF EXISTS Specializations;
 DROP VIEW IF EXISTS Specializations_merge;
 DROP TABLE IF EXISTS Groups;
 DROP TRIGGER IF EXISTS prevent_spec_deletion;
-DROP VIEW IF EXISTS Group_merge;
 DROP TABLE IF EXISTS Students;
 DROP TABLE IF EXISTS Activity;
 DROP TABLE IF EXISTS Disciplines;
@@ -53,7 +52,7 @@ BEGIN
                             FROM Groups
                                      JOIN Specializations_merge Sm on Groups.Specialization = Sm.ID_spec
                             WHERE Specialization = Sm.ID_spec)
-                   THEN RAISE(ABORT, 'Существует группа, привязанная к данной специализации')
+                   THEN RAISE(ABORT, 'Существует группа, привязанная к данной специализации!')
                END;
 END;
 
@@ -69,10 +68,13 @@ CREATE TABLE Activity
 (
     ID_student     INTEGER                              NOT NULL,
     Date_active    date                                 NOT NULL,
-    Year_start     varchar(4)                           NOT NULL,
+    Year_start     INTEGER(4)                           NOT NULL,
+    Semester_start INTEGER(1)                           NOT NULL,
+    Year_end       INTEGER(4),
+    Semester_end   INTEGER(1),
     Specialization varchar(8)                           NOT NULL,
     Status         INTEGER(1) CHECK ( Status IN (0, 1)) NOT NULL,
-    PRIMARY KEY (ID_student, Year_start, Specialization, Date_active),
+    PRIMARY KEY (ID_student, Year_start, Semester_start, Specialization, Date_active),
     FOREIGN KEY (Year_start, Specialization) REFERENCES Groups (Year_start, Specialization),
     FOREIGN KEY (ID_student) REFERENCES Students (ID_certificate)
 );
@@ -85,16 +87,17 @@ CREATE TABLE Disciplines
 
 CREATE TABLE Subjects
 (
-    Discipline varchar(100)                                             NOT NULL,
-    Group_name varchar(100)                                             NOT NULL,
+    Discipline           varchar(100)                                             NOT NULL,
     -- Для удобства будет лучше сразу сделать семестр.
-    Date_year  INTEGER(4)                                               NOT NULL,
-    Date_sem   INTEGER(1) CHECK ( Date_sem IN (1, 2, 3, 4, 5, 6, 7, 8)) NOT NULL,
-    Grade_type INTEGER(1) CHECK ( Grade_type IN (1, 2))                 NOT NULL,
-    Teacher    INTEGER,
-    PRIMARY KEY (Discipline, Group_name, Date_year, Date_sem),
+    Date_year            INTEGER(4)                                               NOT NULL,
+    Date_sem             INTEGER(1) CHECK ( Date_sem IN (1, 2, 3, 4, 5, 6, 7, 8)) NOT NULL,
+    Grade_type           INTEGER(1) CHECK ( Grade_type IN (1, 2))                 NOT NULL,
+    Year_start_group     INTEGER(4)                                               NOT NULL,
+    Specialization_group varchar(8)                                               NOT NULL,
+    Teacher              INTEGER                                                  NOT NULL,
+    PRIMARY KEY (Discipline, Year_start_group, Specialization_group, Date_year, Date_sem),
     FOREIGN KEY (Discipline) REFERENCES Disciplines (Name),
-    FOREIGN KEY (Group_name) REFERENCES Group_merge (ID_group),
+    FOREIGN KEY (Year_start_group, Specialization_group) REFERENCES Groups (Year_start, Specialization),
     FOREIGN KEY (Teacher) REFERENCES Teachers (ID)
 );
 
@@ -104,12 +107,13 @@ CREATE TABLE Subjects
 
 CREATE TABLE Grades
 (
-    Student    INTEGER      NOT NULL,
-    Group_name varchar(14)  NOT NULL,
-    Discipline varchar(100) NOT NULL,
-    Date_year  INTEGER(4)   NOT NULL,
-    Date_sem   INTEGER(1)   NOT NULL,
+    Student              INTEGER      NOT NULL,
+    Year_start           varchar(14)  NOT NULL,
+    Specialization_group varchar(8)   NOT NULL,
+    Discipline           varchar(100) NOT NULL,
+    Date_year            INTEGER(4)   NOT NULL,
+    Date_sem             INTEGER(1)   NOT NULL,
     FOREIGN KEY (Student) REFERENCES Students (ID_certificate),
-    FOREIGN KEY (Discipline, Group_name, Date_year, Date_sem) REFERENCES Subjects (Discipline, Group_name, Date_year, Date_sem)
+    FOREIGN KEY (Discipline, Specialization_group, Date_year, Date_sem) REFERENCES Subjects (Discipline, Specialization_group, Date_year, Date_sem)
     -- Насколько необходимо постоянно писать NotNull, если в ForeignKey перечислены сразу все строки...
 );
