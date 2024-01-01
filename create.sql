@@ -1,8 +1,6 @@
 DROP TABLE IF EXISTS Teachers;
 DROP TABLE IF EXISTS Specializations;
--- DROP VIEW IF EXISTS Specializations_merge;
 DROP TABLE IF EXISTS Groups;
--- DROP VIEW IF EXISTS Groups_merge;
 DROP TABLE IF EXISTS Students;
 DROP TABLE IF EXISTS Activity;
 DROP VIEW IF EXISTS Activity_group;
@@ -20,6 +18,8 @@ CREATE TABLE Teachers
 );
 
 --TODO: Починить связь между специализациями и группами. Через изменение внешнего ключа или через триггер.
+
+-- При использование FOREIGN не применяется RESTRICT
 
 CREATE TABLE Specializations
 (
