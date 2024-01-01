@@ -2,6 +2,7 @@ DROP TABLE IF EXISTS Teachers;
 DROP TABLE IF EXISTS Specializations;
 DROP VIEW IF EXISTS Specializations_merge;
 DROP TABLE IF EXISTS Groups;
+DROP TRIGGER IF EXISTS prevent_spec_deletion;
 DROP VIEW IF EXISTS Group_merge;
 DROP TABLE IF EXISTS Students;
 DROP TABLE IF EXISTS Activity;
@@ -41,6 +42,19 @@ CREATE TABLE Groups
     PRIMARY KEY (Year_start, Specialization),
     FOREIGN KEY (Specialization) REFERENCES Specializations_merge (ID_spec)
 );
+
+CREATE TRIGGER prevent_spec_deletion
+    BEFORE DELETE
+    ON Specializations
+    FOR EACH ROW
+BEGIN
+    SELECT CASE
+               WHEN EXISTS (SELECT 1
+                            FROM Groups JOIN Specializations_merge Sm on Groups.Specialization = Sm.ID_spec
+                            WHERE Specialization = Sm.ID_spec)
+                   THEN RAISE(ABORT, 'Существует группа, привязанная к данной специализации')
+               END;
+END;
 
 CREATE VIEW Group_merge
 AS
