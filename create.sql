@@ -1,17 +1,17 @@
 DROP TABLE IF EXISTS Teachers;
 DROP TABLE IF EXISTS Specializations;
-DROP VIEW IF EXISTS Specializations_merge;
 DROP TABLE IF EXISTS Groups;
 DROP TABLE IF EXISTS Students;
 DROP TABLE IF EXISTS Activity;
 DROP TABLE IF EXISTS Disciplines;
 DROP TABLE IF EXISTS Subjects;
 DROP TABLE IF EXISTS Grades;
+DROP VIEW IF EXISTS Specializations_merge;
 DROP TRIGGER IF EXISTS prevent_spec_deletion;
 DROP TRIGGER IF EXISTS prevent_group_deletion;
-DROP TRIGGER IF EXISTS prevent_student_group_addition;
 DROP TRIGGER IF EXISTS try_spec_deletion;
 DROP TRIGGER IF EXISTS prevent_teacher_toSubj;
+DROP TRIGGER IF EXISTS relocate_student_fromGroup;
 
 CREATE TABLE Teachers
 (
@@ -163,22 +163,24 @@ BEGIN
 END;
 
 /*Проверка перед добавлением студента в новую группу.
-  Подвязан ли студент к какой-то другой группе?*/
-CREATE TRIGGER prevent_student_group_addition
+  Подвязан ли студент к какой-то другой группе?
+  Если да, то создаётся новая запись об отписывании от предыдущей.*/
+CREATE TRIGGER relocate_student_fromGroup
     BEFORE INSERT
     ON Activity
     FOR EACH ROW
 BEGIN
-    SELECT CASE
-               WHEN EXISTS(SELECT 1
-                           FROM (SELECT *,
-                                        first_value(Status)
-                                                    over (partition by Specialization order by Date_active desc) as state_activity
-                                 FROM Activity
-                                 WHERE ID_student == NEW.ID_student)
-                           WHERE state_activity == 1)
-                   THEN RAISE(ABORT, 'Этот студент уже находится в группе!')
-               END;
+    INSERT
+    INTO Activity (ID_student, Date_active, Year_start_group, Specialization, Status)
+    SELECT ID_student, data, Year_start_group, Specialization, 0
+    FROM (SELECT *, date('now') as data
+          FROM (SELECT *
+                FROM Activity A
+                WHERE A.ID_student == NEW.ID_student
+                ORDER BY Date_active desc
+                LIMIT 1) as filter_student
+          WHERE filter_student.Status == 1
+            AND NEW.Status != 0);
 END;
 
 -- Не протестировано
