@@ -215,3 +215,17 @@ BEGIN
                    THEN RAISE(ABORT, 'У этой группы уже есть преподаватель по этому предмету!')
                END;
 END;
+
+CREATE TRIGGER prevent_grade_insert
+    BEFORE INSERT
+    ON Subjects
+    FOR EACH ROW
+BEGIN
+    SELECT CASE
+               WHEN NOT EXISTS(SELECT 1
+                           FROM Subjects S
+                                    JOIN Groups G on S.Year_start_group = G.Year_start and
+                                                     S.Specialization_group = G.Specialization)
+        THEN RAISE(ABORT, 'Студент не состоит в группе, которая занимается этим предметом!')
+               END;
+END;
