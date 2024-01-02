@@ -2,14 +2,15 @@ DROP TABLE IF EXISTS Teachers;
 DROP TABLE IF EXISTS Specializations;
 DROP VIEW IF EXISTS Specializations_merge;
 DROP TABLE IF EXISTS Groups;
-DROP TRIGGER IF EXISTS prevent_spec_deletion;
-DROP TRIGGER IF EXISTS prevent_group_deletion;
-DROP TRIGGER IF EXISTS prevent_student_group_addition;
 DROP TABLE IF EXISTS Students;
 DROP TABLE IF EXISTS Activity;
 DROP TABLE IF EXISTS Disciplines;
 DROP TABLE IF EXISTS Subjects;
 DROP TABLE IF EXISTS Grades;
+DROP TRIGGER IF EXISTS prevent_spec_deletion;
+DROP TRIGGER IF EXISTS prevent_group_deletion;
+DROP TRIGGER IF EXISTS prevent_student_group_addition;
+DROP TRIGGER IF EXISTS try_spec_deletion;
 
 CREATE TABLE Teachers
 (
@@ -124,6 +125,23 @@ BEGIN
                            WHERE Records.last_stat == 1)
                    THEN RAISE(ABORT, 'У этой специальности есть непустые группы!')
                END;
+END;
+
+/*При удалении всех групп привязанных к какой-либо специализации её также следует удалить.*/
+CREATE TRIGGER try_spec_deletion
+    AFTER DELETE
+    ON Groups
+    FOR EACH ROW
+BEGIN
+    DELETE
+    FROM Specializations
+    WHERE ("Code group" || '.' || "Code education" || '.' || "Code work") ==
+          CASE
+              WHEN NOT EXISTS(SELECT 1
+                              FROM Groups G
+                              WHERE G.Specialization == OLD.Specialization)
+                  THEN OLD.Specialization
+              END;
 END;
 
 /*Проверка перед удалением группы.
