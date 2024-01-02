@@ -11,6 +11,7 @@ DROP TRIGGER IF EXISTS prevent_spec_deletion;
 DROP TRIGGER IF EXISTS prevent_group_deletion;
 DROP TRIGGER IF EXISTS prevent_student_group_addition;
 DROP TRIGGER IF EXISTS try_spec_deletion;
+DROP TRIGGER IF EXISTS prevent_teacher_toSubj;
 
 CREATE TABLE Teachers
 (
@@ -180,6 +181,7 @@ BEGIN
                END;
 END;
 
+-- Не протестировано
 /*Не допускается удаление дисциплин, связанных с существующими предметами.*/
 CREATE TRIGGER prevent_disc_deletion
     BEFORE DELETE
@@ -191,5 +193,23 @@ BEGIN
                            FROM Subjects S
                            WHERE OLD.Name == S.Discipline)
                    THEN RAISE(ABORT, 'У этой дисциплины есть предметы!')
+               END;
+END;
+
+-- Благодаря Primary Key обеспечена уникальность значений.
+/*Разные преподаватели не могут одновременно вести одинаковые дисциплины в одной и той же группе*/
+CREATE TRIGGER prevent_teacher_toSubj
+    BEFORE INSERT
+    ON Subjects
+    FOR EACH ROW
+BEGIN
+    SELECT CASE
+               WHEN EXISTS(SELECT 1
+                           FROM Subjects S
+                           WHERE NEW.Discipline == S.Discipline
+                             AND NEW.Specialization_group == S.Specialization_group
+                             AND (NEW.Date_year == S.Date_year and NEW.Date_sem == S.Date_sem)
+                             AND NEW.Teacher != S.Teacher)
+                   THEN RAISE(ABORT, 'У этой группы уже есть преподаватель по этому предмету!')
                END;
 END;
