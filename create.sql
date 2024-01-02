@@ -4,6 +4,7 @@ DROP VIEW IF EXISTS Specializations_merge;
 DROP TABLE IF EXISTS Groups;
 DROP TRIGGER IF EXISTS prevent_spec_deletion;
 DROP TRIGGER IF EXISTS prevent_group_deletion;
+DROP TRIGGER IF EXISTS prevent_student_group_addition;
 DROP TABLE IF EXISTS Students;
 DROP TABLE IF EXISTS Activity;
 DROP TABLE IF EXISTS Disciplines;
@@ -53,7 +54,7 @@ BEGIN
                             WHERE (OLD."Code group" || '.' || OLD."Code education" || '.' || OLD."Code work") ==
                                   Groups.Specialization)
                    THEN RAISE(ABORT, 'Существует группа, привязанная к данной специализации!')
-                   END;
+               END;
 END;
 
 CREATE TABLE Students
@@ -77,6 +78,27 @@ CREATE TABLE Activity
     FOREIGN KEY (Year_start_group, Specialization) REFERENCES Groups (Year_start, Specialization),
     FOREIGN KEY (ID_student) REFERENCES Students (ID_certificate)
 );
+-- Если есть студент, зачисленный в группу, и ещё из неё не выпустившийся — RAISE
+-- CREATE TRIGGER prevent_group_deletion
+--     BEFORE DELETE
+--     ON Groups
+--     FOR EACH ROW
+-- BEGIN
+--     SELECT CASE
+--                WHEN EXISTS (SELECT 1
+--                             -- Не работает с last_value. Костыль time!
+--                             FROM (SELECT *,
+--                                          first_value(Status)
+--                                                      over (partition by ID_student order by Date_active desc) as last_stat
+--                                   FROM Activity A
+--                                            JOIN Groups G on G.Year_start = A.Year_start_group and
+--                                                             G.Specialization = A.Specialization
+--                                   WHERE OLD.Specialization == A.Specialization
+--                                     and OLD.Year_start == A.Year_start_group) AS "Correct group"
+--                             WHERE "Correct group".last_stat == 1)
+--                    THEN RAISE(ABORT, 'К этой группе ещё привязаны студенты, которые не закончили обучение!')
+--                END;
+-- END;
 
 CREATE TRIGGER prevent_group_deletion
     BEFORE DELETE
@@ -84,18 +106,10 @@ CREATE TRIGGER prevent_group_deletion
     FOR EACH ROW
 BEGIN
     SELECT CASE
-               WHEN EXISTS (SELECT 1
-                            -- Не работает с last_value. Костыль time!
-                            FROM (SELECT *,
-                                         first_value(Status)
-                                                     over (partition by ID_student order by Date_active desc) as last_stat
-                                  FROM Activity A
-                                           JOIN Groups G on G.Year_start = A.Year_start_group and
-                                                            G.Specialization = A.Specialization
-                                  WHERE OLD.Specialization == A.Specialization
-                                    and OLD.Year_start == A.Year_start_group) AS "Correct group"
-                            WHERE "Correct group".last_stat == 1)
-                   THEN RAISE(ABORT, 'К этой группе ещё привязаны студенты, которые не закончили обучение!')
+               WHEN EXISTS(SELECT 1
+                           FROM Activity A
+                           WHERE OLD.Specialization == A.Specialization)
+                   THEN RAISE(FAIL, 'У этой группы есть/были студенты!')
                END;
 END;
 
