@@ -103,6 +103,8 @@ CREATE TABLE Grades
     Date_sem             INTEGER(1)                             NOT NULL,
     -- Не допускается проставление оценки передним числом. (позднее текущего момента).
     Date_add             date CHECK ( Date_add <= date('now') ) NOT NULL,
+    Value                INTEGER(1) CHECK ( 2 <= Value <= 5 )   NOT NULL,
+        PRIMARY KEY (Student, Year_start, Specialization_group, Discipline),
     FOREIGN KEY (Student) REFERENCES Students (ID_certificate),
     FOREIGN KEY (Discipline, Specialization_group, Date_year, Date_sem) REFERENCES Subjects (Discipline, Specialization_group, Date_year, Date_sem)
     -- Насколько необходимо постоянно писать NotNull, если в ForeignKey перечислены сразу все строки...
@@ -216,13 +218,12 @@ BEGIN
                END;
 END;
 
-/*Проверка проставления оценки.
-  Оценка может ставиться только по тому предмету, который есть у группы.*/
 CREATE TRIGGER prevent_grade_insert
     BEFORE INSERT
     ON Grades
     FOR EACH ROW
 BEGIN
+    /* Оценка может ставиться только по тому предмету, который есть у группы.*/
     SELECT CASE
                WHEN NOT EXISTS(SELECT *
                                FROM (SELECT *
@@ -240,4 +241,11 @@ BEGIN
                    THEN RAISE(ABORT,
                               'Студент не состоит в группе, которая занимается этим предметом! Или студент отчислен!')
                END;
+    /* Удаление старых оценок.*/
+    DELETE
+    FROM Grades
+    WHERE NEW.Discipline == Grades.Discipline
+      AND NEW.Student == Grades.Student
+      AND NEW.Year_start == Grades.Year_start
+      AND NEW.Specialization_group == Grades.Specialization_group;
 END;
