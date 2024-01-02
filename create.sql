@@ -42,20 +42,6 @@ CREATE TABLE Groups
     FOREIGN KEY (Specialization) REFERENCES Specializations_merge (ID_spec)
 );
 
-CREATE TRIGGER prevent_spec_deletion
-    BEFORE DELETE
-    ON Specializations
-    FOR EACH ROW
-BEGIN
-    SELECT CASE
-               WHEN EXISTS (SELECT 1
-                            FROM Groups
-                            WHERE (OLD."Code group" || '.' || OLD."Code education" || '.' || OLD."Code work") ==
-                                  Groups.Specialization)
-                   THEN RAISE(ABORT, 'Существует группа, привязанная к данной специализации!')
-               END;
-END;
-
 CREATE TABLE Students
 (
     ID_certificate  INTEGER PRIMARY KEY UNIQUE,
@@ -99,38 +85,6 @@ CREATE TABLE Activity
 --                END;
 -- END;
 
-/*Проверка перед удалением группы*/
-CREATE TRIGGER prevent_group_deletion
-    BEFORE DELETE
-    ON Groups
-    FOR EACH ROW
-BEGIN
-    SELECT CASE
-               WHEN EXISTS(SELECT 1
-                           FROM Activity A
-                           WHERE OLD.Specialization == A.Specialization)
-                   THEN RAISE(FAIL, 'У этой группы есть/были студенты!')
-               END;
-END;
-
-/*Проверка перед добавлением студента в новую группу*/
-CREATE TRIGGER prevent_student_group_addition
-    BEFORE INSERT
-    ON Activity
-    FOR EACH ROW
-BEGIN
-    SELECT CASE
-               WHEN EXISTS(SELECT 1
-                           FROM (SELECT *,
-                                        first_value(Status)
-                                                    over (partition by Specialization order by Date_active desc) as state_activity
-                                 FROM Activity
-                                 WHERE ID_student == NEW.ID_student)
-                           WHERE state_activity == 1)
-                   THEN RAISE(ABORT, 'Этот студент уже находится в группе!')
-               END;
-END;
-
 CREATE TABLE Disciplines
 (
     Name        varchar(100) NOT NULL UNIQUE PRIMARY KEY,
@@ -169,3 +123,50 @@ CREATE TABLE Grades
     FOREIGN KEY (Discipline, Specialization_group, Date_year, Date_sem) REFERENCES Subjects (Discipline, Specialization_group, Date_year, Date_sem)
     -- Насколько необходимо постоянно писать NotNull, если в ForeignKey перечислены сразу все строки...
 );
+
+/*Проверка перед удалением специализации*/
+CREATE TRIGGER prevent_spec_deletion
+    BEFORE DELETE
+    ON Specializations
+    FOR EACH ROW
+BEGIN
+    SELECT CASE
+               WHEN EXISTS (SELECT 1
+                            FROM Groups
+                            WHERE (OLD."Code group" || '.' || OLD."Code education" || '.' || OLD."Code work") ==
+                                  Groups.Specialization)
+                   THEN RAISE(ABORT, 'Существует группа, привязанная к данной специализации!')
+               END;
+END;
+
+/*Проверка перед удалением группы*/
+CREATE TRIGGER prevent_group_deletion
+    BEFORE DELETE
+    ON Groups
+    FOR EACH ROW
+BEGIN
+    SELECT CASE
+               WHEN EXISTS(SELECT 1
+                           FROM Activity A
+                           WHERE OLD.Specialization == A.Specialization)
+                   THEN RAISE(FAIL, 'У этой группы есть/были студенты!')
+               END;
+END;
+
+/*Проверка перед добавлением студента в новую группу*/
+CREATE TRIGGER prevent_student_group_addition
+    BEFORE INSERT
+    ON Activity
+    FOR EACH ROW
+BEGIN
+    SELECT CASE
+               WHEN EXISTS(SELECT 1
+                           FROM (SELECT *,
+                                        first_value(Status)
+                                                    over (partition by Specialization order by Date_active desc) as state_activity
+                                 FROM Activity
+                                 WHERE ID_student == NEW.ID_student)
+                           WHERE state_activity == 1)
+                   THEN RAISE(ABORT, 'Этот студент уже находится в группе!')
+               END;
+END;
