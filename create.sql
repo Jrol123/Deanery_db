@@ -19,8 +19,6 @@ CREATE TABLE Teachers
     'Date of birth' date
 );
 
---TODO: Починить связь между специализациями и группами. Через изменение внешнего ключа или через триггер.
-
 CREATE TABLE Specializations
 (
     'Code group'     varchar(2)   NOT NULL,
@@ -57,6 +55,31 @@ BEGIN
                END;
 END;
 
+CREATE TABLE Students
+(
+    ID_certificate  INTEGER PRIMARY KEY UNIQUE,
+    'Full Name'     varchar(200)                                   NOT NULL,
+    Gender          varchar(1) CHECK ( Gender IN ('m', 'f', 'o') ) NOT NULL,
+    'Date of birth' date
+);
+
+
+CREATE TABLE Activity
+
+(
+    ID_student     INTEGER                              NOT NULL,
+    Date_active    date                                 NOT NULL,
+    Year_start     INTEGER(4)                           NOT NULL,
+    Semester_start INTEGER(1)                           NOT NULL,
+    Year_end       INTEGER(4),
+    Semester_end   INTEGER(1),
+    Specialization varchar(8)                           NOT NULL,
+    Status         INTEGER(1) CHECK ( Status IN (0, 1)) NOT NULL,
+    PRIMARY KEY (ID_student, Year_start, Semester_start, Specialization, Date_active),
+    FOREIGN KEY (Year_start, Specialization) REFERENCES Groups (Year_start, Specialization),
+    FOREIGN KEY (ID_student) REFERENCES Students (ID_certificate)
+);
+
 -- TODO: Дописать триггер
 CREATE TRIGGER prevent_group_deletion
     BEFORE DELETE
@@ -72,28 +95,7 @@ BEGIN
                END;
 END;
 
-CREATE TABLE Students
-(
-    ID_certificate  INTEGER PRIMARY KEY UNIQUE,
-    'Full Name'     varchar(200)                                   NOT NULL,
-    Gender          varchar(1) CHECK ( Gender IN ('m', 'f', 'o') ) NOT NULL,
-    'Date of birth' date
-);
-
-CREATE TABLE Activity
-(
-    ID_student     INTEGER                              NOT NULL,
-    Date_active    date                                 NOT NULL,
-    Year_start     INTEGER(4)                           NOT NULL,
-    Semester_start INTEGER(1)                           NOT NULL,
-    Year_end       INTEGER(4),
-    Semester_end   INTEGER(1),
-    Specialization varchar(8)                           NOT NULL,
-    Status         INTEGER(1) CHECK ( Status IN (0, 1)) NOT NULL,
-    PRIMARY KEY (ID_student, Year_start, Semester_start, Specialization, Date_active),
-    FOREIGN KEY (Year_start, Specialization) REFERENCES Groups (Year_start, Specialization),
-    FOREIGN KEY (ID_student) REFERENCES Students (ID_certificate)
-);
+-- TODO: Написать триггер, проверяющий добавление активности студента
 
 CREATE TABLE Disciplines
 (
