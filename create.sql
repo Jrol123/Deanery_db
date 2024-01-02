@@ -216,16 +216,28 @@ BEGIN
                END;
 END;
 
+/*Проверка проставления оценки.
+  Оценка может ставиться только по тому предмету, который есть у группы.*/
 CREATE TRIGGER prevent_grade_insert
     BEFORE INSERT
-    ON Subjects
+    ON Grades
     FOR EACH ROW
 BEGIN
     SELECT CASE
-               WHEN NOT EXISTS(SELECT 1
-                           FROM Subjects S
-                                    JOIN Groups G on S.Year_start_group = G.Year_start and
-                                                     S.Specialization_group = G.Specialization)
-        THEN RAISE(ABORT, 'Студент не состоит в группе, которая занимается этим предметом!')
+               WHEN NOT EXISTS(SELECT *
+                               FROM (SELECT *
+                                     FROM Activity A
+                                     WHERE NEW.Student == A.ID_student
+                                     LIMIT 1) AS filter_student
+                                        JOIN Groups G ON filter_student.Year_start_group == G.Year_start AND
+                                                         filter_student.Specialization == G.Specialization
+                                        JOIN Subjects S on G.Year_start = S.Year_start_group and
+                                                           G.Specialization = S.Specialization_group
+                                        JOIN Grades Gr on S.Discipline = Gr.Discipline and
+                                                          S.Specialization_group = Gr.Specialization_group and
+                                                          S.Date_year = Gr.Date_year and S.Date_sem = Gr.Date_sem
+                               WHERE filter_student.Status != 0)
+                   THEN RAISE(ABORT,
+                              'Студент не состоит в группе, которая занимается этим предметом! Или студент отчислен!')
                END;
 END;
