@@ -41,6 +41,7 @@ CREATE TABLE Groups
     FOREIGN KEY (Specialization) REFERENCES Specializations_merge (ID_spec)
 );
 
+-- TODO: Проверить работоспособность
 CREATE TRIGGER prevent_spec_deletion
     BEFORE DELETE
     ON Specializations
@@ -77,7 +78,6 @@ CREATE TABLE Activity
     FOREIGN KEY (ID_student) REFERENCES Students (ID_certificate)
 );
 
--- TODO: Дописать триггер
 CREATE TRIGGER prevent_group_deletion
     BEFORE DELETE
     ON Groups
@@ -85,11 +85,16 @@ CREATE TRIGGER prevent_group_deletion
 BEGIN
     SELECT CASE
                WHEN EXISTS (SELECT 1
-                            FROM (SELECT last_value(Status) over (partition by ID_student order by Date_active) as last_stat
+                            -- Не работает с last_value. Костыль time!
+                            FROM (SELECT *,
+                                         first_value(Status)
+                                                     over (partition by ID_student order by Date_active desc) as last_stat
                                   FROM Activity A
+                                           JOIN Groups G on G.Year_start = A.Year_start_group and
+                                                            G.Specialization = A.Specialization
                                   WHERE OLD.Specialization == A.Specialization
                                     and OLD.Year_start == A.Year_start_group) AS "Correct group"
-                            WHERE last_stat == 1)
+                            WHERE "Correct group".last_stat == 1)
                    THEN RAISE(ABORT, 'К этой группе ещё привязаны студенты, которые не закончили обучение!')
                END;
 END;
