@@ -94,12 +94,14 @@ CREATE TABLE Subjects
 
 CREATE TABLE Grades
 (
-    Student              INTEGER      NOT NULL,
-    Year_start           varchar(14)  NOT NULL,
-    Specialization_group varchar(8)   NOT NULL,
-    Discipline           varchar(100) NOT NULL,
-    Date_year            INTEGER(4)   NOT NULL,
-    Date_sem             INTEGER(1)   NOT NULL,
+    Student              INTEGER                                NOT NULL,
+    Year_start           varchar(14)                            NOT NULL,
+    Specialization_group varchar(8)                             NOT NULL,
+    Discipline           varchar(100)                           NOT NULL,
+    Date_year            INTEGER(4)                             NOT NULL,
+    Date_sem             INTEGER(1)                             NOT NULL,
+    -- Не допускается проставление оценки передним числом. (позднее текущего момента).
+    Date_add             date CHECK ( Date_add <= date('now') ) NOT NULL,
     FOREIGN KEY (Student) REFERENCES Students (ID_certificate),
     FOREIGN KEY (Discipline, Specialization_group, Date_year, Date_sem) REFERENCES Subjects (Discipline, Specialization_group, Date_year, Date_sem)
     -- Насколько необходимо постоянно писать NotNull, если в ForeignKey перечислены сразу все строки...
@@ -175,5 +177,19 @@ BEGIN
                                  WHERE ID_student == NEW.ID_student)
                            WHERE state_activity == 1)
                    THEN RAISE(ABORT, 'Этот студент уже находится в группе!')
+               END;
+END;
+
+/*Не допускается удаление дисциплин, связанных с существующими предметами.*/
+CREATE TRIGGER prevent_disc_deletion
+    BEFORE DELETE
+    ON Disciplines
+    FOR EACH ROW
+BEGIN
+    SELECT CASE
+               WHEN EXISTS(SELECT 1
+                           FROM Subjects S
+                           WHERE OLD.Name == S.Discipline)
+                   THEN RAISE(ABORT, 'У этой дисциплины есть предметы!')
                END;
 END;
