@@ -50,10 +50,10 @@ BEGIN
     SELECT CASE
                WHEN EXISTS (SELECT 1
                             FROM Groups
-                                     JOIN Specializations_merge Sm on Groups.Specialization = Sm.ID_spec
-                            WHERE Specialization == Sm.ID_spec)
+                            WHERE (OLD."Code group" || '.' || OLD."Code education" || '.' || OLD."Code work") ==
+                                  Groups.Specialization)
                    THEN RAISE(ABORT, 'Существует группа, привязанная к данной специализации!')
-               END;
+                   END;
 END;
 
 CREATE TABLE Students
