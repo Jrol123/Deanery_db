@@ -3,6 +3,7 @@ DROP TABLE IF EXISTS Specializations;
 DROP VIEW IF EXISTS Specializations_merge;
 DROP TABLE IF EXISTS Groups;
 DROP TRIGGER IF EXISTS prevent_spec_deletion;
+DROP TRIGGER IF EXISTS prevent_group_deletion;
 DROP TABLE IF EXISTS Students;
 DROP TABLE IF EXISTS Activity;
 DROP TABLE IF EXISTS Disciplines;
@@ -17,8 +18,6 @@ CREATE TABLE Teachers
     Has_degree      INTEGER CHECK (Has_degree IN (0, 1))           NOT NULL,
     'Date of birth' date
 );
-
---TODO: Починить связь между специализациями и группами. Через изменение внешнего ключа или через триггер.
 
 CREATE TABLE Specializations
 (
@@ -42,6 +41,7 @@ CREATE TABLE Groups
     FOREIGN KEY (Specialization) REFERENCES Specializations_merge (ID_spec)
 );
 
+-- TODO: Проверить работоспособность
 CREATE TRIGGER prevent_spec_deletion
     BEFORE DELETE
     ON Specializations
@@ -50,10 +50,10 @@ BEGIN
     SELECT CASE
                WHEN EXISTS (SELECT 1
                             FROM Groups
-                                     JOIN Specializations_merge Sm on Groups.Specialization = Sm.ID_spec
-                            WHERE Specialization = Sm.ID_spec)
+                            WHERE (OLD."Code group" || '.' || OLD."Code education" || '.' || OLD."Code work") ==
+                                  Groups.Specialization)
                    THEN RAISE(ABORT, 'Существует группа, привязанная к данной специализации!')
-               END;
+                   END;
 END;
 
 CREATE TABLE Students
@@ -64,20 +64,42 @@ CREATE TABLE Students
     'Date of birth' date
 );
 
+
 CREATE TABLE Activity
+
 (
-    ID_student     INTEGER                              NOT NULL,
-    Date_active    date                                 NOT NULL,
-    Year_start     INTEGER(4)                           NOT NULL,
-    Semester_start INTEGER(1)                           NOT NULL,
-    Year_end       INTEGER(4),
-    Semester_end   INTEGER(1),
-    Specialization varchar(8)                           NOT NULL,
-    Status         INTEGER(1) CHECK ( Status IN (0, 1)) NOT NULL,
-    PRIMARY KEY (ID_student, Year_start, Semester_start, Specialization, Date_active),
-    FOREIGN KEY (Year_start, Specialization) REFERENCES Groups (Year_start, Specialization),
+    ID_student       INTEGER                              NOT NULL,
+    Date_active      date                                 NOT NULL,
+    Year_start_group INTEGER(4)                           NOT NULL,
+    Specialization   varchar(8)                           NOT NULL,
+    Status           INTEGER(1) CHECK ( Status IN (0, 1)) NOT NULL,
+    PRIMARY KEY (ID_student, Date_active, Year_start_group, Specialization),
+    FOREIGN KEY (Year_start_group, Specialization) REFERENCES Groups (Year_start, Specialization),
     FOREIGN KEY (ID_student) REFERENCES Students (ID_certificate)
 );
+
+CREATE TRIGGER prevent_group_deletion
+    BEFORE DELETE
+    ON Groups
+    FOR EACH ROW
+BEGIN
+    SELECT CASE
+               WHEN EXISTS (SELECT 1
+                            -- Не работает с last_value. Костыль time!
+                            FROM (SELECT *,
+                                         first_value(Status)
+                                                     over (partition by ID_student order by Date_active desc) as last_stat
+                                  FROM Activity A
+                                           JOIN Groups G on G.Year_start = A.Year_start_group and
+                                                            G.Specialization = A.Specialization
+                                  WHERE OLD.Specialization == A.Specialization
+                                    and OLD.Year_start == A.Year_start_group) AS "Correct group"
+                            WHERE "Correct group".last_stat == 1)
+                   THEN RAISE(ABORT, 'К этой группе ещё привязаны студенты, которые не закончили обучение!')
+               END;
+END;
+
+-- TODO: Написать триггер, проверяющий добавление активности студента, когда у него есть ещё одна группа
 
 CREATE TABLE Disciplines
 (
@@ -94,7 +116,7 @@ CREATE TABLE Subjects
     Grade_type           INTEGER(1) CHECK ( Grade_type IN (1, 2))                 NOT NULL,
     Year_start_group     INTEGER(4)                                               NOT NULL,
     Specialization_group varchar(8)                                               NOT NULL,
-    Teacher              INTEGER                                                  NOT NULL,
+    Teacher              INTEGER,
     PRIMARY KEY (Discipline, Year_start_group, Specialization_group, Date_year, Date_sem),
     FOREIGN KEY (Discipline) REFERENCES Disciplines (Name),
     FOREIGN KEY (Year_start_group, Specialization_group) REFERENCES Groups (Year_start, Specialization),
