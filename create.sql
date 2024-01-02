@@ -60,30 +60,10 @@ CREATE TABLE Activity
     Specialization   varchar(8)                           NOT NULL,
     Status           INTEGER(1) CHECK ( Status IN (0, 1)) NOT NULL,
     PRIMARY KEY (ID_student, Date_active, Year_start_group, Specialization),
-    FOREIGN KEY (Year_start_group, Specialization) REFERENCES Groups (Year_start, Specialization),
+    -- ON DELETE RESTRICT не работает
+    FOREIGN KEY (Year_start_group, Specialization) REFERENCES Groups (Year_start, Specialization) ON DELETE RESTRICT,
     FOREIGN KEY (ID_student) REFERENCES Students (ID_certificate)
 );
--- Если есть студент, зачисленный в группу, и ещё из неё не выпустившийся — RAISE
--- CREATE TRIGGER prevent_group_deletion
---     BEFORE DELETE
---     ON Groups
---     FOR EACH ROW
--- BEGIN
---     SELECT CASE
---                WHEN EXISTS (SELECT 1
---                             -- Не работает с last_value. Костыль time!
---                             FROM (SELECT *,
---                                          first_value(Status)
---                                                      over (partition by ID_student order by Date_active desc) as last_stat
---                                   FROM Activity A
---                                            JOIN Groups G on G.Year_start = A.Year_start_group and
---                                                             G.Specialization = A.Specialization
---                                   WHERE OLD.Specialization == A.Specialization
---                                     and OLD.Year_start == A.Year_start_group) AS "Correct group"
---                             WHERE "Correct group".last_stat == 1)
---                    THEN RAISE(ABORT, 'К этой группе ещё привязаны студенты, которые не закончили обучение!')
---                END;
--- END;
 
 CREATE TABLE Disciplines
 (
@@ -124,22 +104,30 @@ CREATE TABLE Grades
     -- Насколько необходимо постоянно писать NotNull, если в ForeignKey перечислены сразу все строки...
 );
 
-/*Проверка перед удалением специализации*/
+-- ТРИГГЕРЫ
+
+/*Проверка перед удалением специализации.
+  Есть ли непустые группы?*/
 CREATE TRIGGER prevent_spec_deletion
     BEFORE DELETE
     ON Specializations
     FOR EACH ROW
 BEGIN
     SELECT CASE
-               WHEN EXISTS (SELECT 1
-                            FROM Groups
-                            WHERE (OLD."Code group" || '.' || OLD."Code education" || '.' || OLD."Code work") ==
-                                  Groups.Specialization)
-                   THEN RAISE(ABORT, 'Существует группа, привязанная к данной специализации!')
+               WHEN EXISTS(SELECT 1
+                           FROM (SELECT *,
+                                        first_value(Status)
+                                                    over (partition by ID_student order by Date_active desc) as last_stat
+                                 FROM Activity A
+                                 WHERE (OLD."Code group" || '.' || OLD."Code education" || '.' || OLD."Code work") ==
+                                       A.Specialization) AS Records
+                           WHERE Records.last_stat == 1)
+                   THEN RAISE(ABORT, 'У этой специальности есть непустые группы!')
                END;
 END;
 
-/*Проверка перед удалением группы*/
+/*Проверка перед удалением группы.
+  Есть ли у группы какие-то записи?*/
 CREATE TRIGGER prevent_group_deletion
     BEFORE DELETE
     ON Groups
@@ -149,11 +137,12 @@ BEGIN
                WHEN EXISTS(SELECT 1
                            FROM Activity A
                            WHERE OLD.Specialization == A.Specialization)
-                   THEN RAISE(FAIL, 'У этой группы есть/были студенты!')
+                   THEN RAISE(ABORT, 'У этой группы есть/были студенты!')
                END;
 END;
 
-/*Проверка перед добавлением студента в новую группу*/
+/*Проверка перед добавлением студента в новую группу.
+  Подвязан ли студент к какой-то другой группе?*/
 CREATE TRIGGER prevent_student_group_addition
     BEFORE INSERT
     ON Activity
