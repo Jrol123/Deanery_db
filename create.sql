@@ -113,7 +113,22 @@ BEGIN
                END;
 END;
 
--- TODO: Написать триггер, проверяющий добавление активности студента, когда у него есть ещё одна группа
+CREATE TRIGGER prevent_student_group_addition
+    BEFORE INSERT
+    ON Activity
+    FOR EACH ROW
+BEGIN
+    SELECT CASE
+               WHEN EXISTS(SELECT 1
+                           FROM (SELECT *,
+                                        first_value(Status)
+                                                    over (partition by Specialization order by Date_active desc) as state_activity
+                                 FROM Activity
+                                 WHERE ID_student == NEW.ID_student)
+                           WHERE state_activity == 1)
+                   THEN RAISE(ABORT, 'Этот студент уже находится в группе!')
+               END;
+END;
 
 CREATE TABLE Disciplines
 (
