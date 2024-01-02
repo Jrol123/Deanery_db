@@ -42,7 +42,6 @@ CREATE TABLE Groups
     FOREIGN KEY (Specialization) REFERENCES Specializations_merge (ID_spec)
 );
 
--- TODO: Проверить работоспособность
 CREATE TRIGGER prevent_spec_deletion
     BEFORE DELETE
     ON Specializations
@@ -100,6 +99,7 @@ CREATE TABLE Activity
 --                END;
 -- END;
 
+/*Проверка перед удалением группы*/
 CREATE TRIGGER prevent_group_deletion
     BEFORE DELETE
     ON Groups
@@ -113,6 +113,7 @@ BEGIN
                END;
 END;
 
+/*Проверка перед добавлением студента в новую группу*/
 CREATE TRIGGER prevent_student_group_addition
     BEFORE INSERT
     ON Activity
