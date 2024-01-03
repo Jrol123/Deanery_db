@@ -93,6 +93,40 @@ def insert_student() -> None:
                    (id_certificate, full_name, gender, date_birth))
 
 
+def insert_discipline() -> None:
+    """
+
+    Создание дисциплины.
+
+    :return: Создаёт запись в таблицу Disciplines
+    :rtype: None
+
+    """
+    state_input = ""
+    name = ""
+    description = ""
+    while state_input != "y":
+        clear_console()
+        name = input("Введите название дисциплины:\n    ")
+        description = input("Введите описание дисциплины:\n    ")
+        print(f"\n\nПроверьте правильность введённых данных:\n"
+              f"    {name}\n    {description}")
+        state_input = input("\nВсё верно? [y]es, [n]o:\n    ")
+
+    cursor.execute("INSERT INTO Disciplines (Name, Description) VALUES (?, ?)", (name, description))
+
+
+def insert_subject() -> None:
+    """
+
+    Создание предмета.
+
+    :return: Создаёт запись в таблицу Subjects
+    :rtype: None
+
+    """
+
+
 if __name__ == "__main__":
     clear_console()
     print(f"Автор: {__author__}\n"
@@ -108,6 +142,11 @@ if __name__ == "__main__":
                 insert_teacher()
             case "create student":
                 insert_student()
+            case "create discipline":
+                insert_discipline()
+            case "create subject":
+                insert_subject()
+
             case _:
                 is_success = False
         connection.commit()
