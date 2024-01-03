@@ -201,6 +201,7 @@ CREATE TRIGGER relocate_student_fromGroup
     ON Activity
     FOR EACH ROW
 BEGIN
+    /*Состоит ли студент в той группе, откуда его пытаются удалить?*/
     SELECT CASE
                WHEN NOT EXISTS(SELECT 1
                                FROM (SELECT A.Status
@@ -214,8 +215,7 @@ BEGIN
                    AND NEW.Status == 0
                    THEN RAISE(ABORT, 'Студент не состоит в той группе, откуда вы пытаетесь его удалить!')
                END;
-    /*Проверка перед добавлением студента в новую группу.
-      Подвязан ли студент к какой-то другой группе?
+    /*Подвязан ли студент к какой-то другой группе?
       Если да, то создаётся новая запись об отписывании от предыдущей.*/
     INSERT
     INTO Activity (ID_student, Date_active, Year_start_group, Specialization, Status)
