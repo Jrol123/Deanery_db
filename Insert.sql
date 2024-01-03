@@ -53,3 +53,18 @@ SELECT 'Студент'       as "Должность",
        "Date of birth" as "Возраст"
 FROM Students
 WHERE "Date of birth" <= date('2004-01-01');
+
+-- ТРЕБОВАНИЕ 5
+
+SELECT "Full Name" as "ФИО",
+       Gender      as Пол
+FROM Subjects S
+         JOIN main.Teachers T on T.ID = S.Teacher
+-- Можно сделать через чистое сравнение по параметрам
+WHERE date('2024-07-23') >= CASE
+                                WHEN S.Date_sem == 2
+                                    THEN DATE(
+                                        ((S.Year_start_group + S.Date_year - 1) || '-09-01'),
+                                        '+180 day')
+                                ELSE DATE(((S.Year_start_group + S.Date_year - 1) || '-09-01'))
+    END;
