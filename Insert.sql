@@ -68,3 +68,14 @@ WHERE date('2024-07-23') >= CASE
                                         '+180 day')
                                 ELSE DATE(((S.Year_start_group + S.Date_year - 1) || '-09-01'))
     END;
+
+-- ТРЕБОВАНИЕ 6
+
+SELECT *
+FROM (SELECT *
+      FROM Activity_student A
+      WHERE "Группа" == '2022-02.03.01'
+        AND date('2028-07-23') >= "Дата"
+      ORDER BY "Дата" desc)
+-- Если нужны все записи по группе за промежуток — просто используйте View
+GROUP BY ID;

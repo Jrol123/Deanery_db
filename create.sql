@@ -9,6 +9,7 @@ DROP TABLE IF EXISTS Grades;
 DROP VIEW IF EXISTS Specializations_merge;
 DROP VIEW IF EXISTS Teacher_age;
 DROP VIEW IF EXISTS Student_age;
+DROP VIEW IF EXISTS Activity_student;
 DROP TRIGGER IF EXISTS prevent_spec_deletion;
 DROP TRIGGER IF EXISTS prevent_group_deletion;
 DROP TRIGGER IF EXISTS try_spec_deletion;
@@ -128,6 +129,16 @@ FROM (SELECT STRFTIME('%Y', date('now')) - STRFTIME('%Y', "Date of birth") as ye
              STRFTIME('%m', date('now')) - STRFTIME('%m', "Date of birth") as month_diff,
              STRFTIME('%d', date('now')) - STRFTIME('%d', "Date of birth") as day_diff
       FROM Students) as splicer;
+
+CREATE VIEW Activity_student as
+SELECT A.ID_student                                as ID,
+       (Year_start_group || '-' || Specialization) as "Группа",
+       "Full Name"                                 as "ФИО",
+       Gender                                      as "Пол",
+       Status                                      as "Статус",
+       Date_active as "Дата"
+FROM Activity A
+         JOIN Students S on S.ID_certificate = A.ID_student;
 
 
 -- ТРИГГЕРЫ
