@@ -236,22 +236,20 @@ BEGIN
                END;
     /*Оценка не может ставиться раньше начала предмета.*/
     SELECT CASE
-               WHEN NOT EXISTS(SELECT *
-                               FROM Subjects S
-                               WHERE NEW.Discipline == S.Discipline
-                                 AND NEW.Date_grade <= (SELECT CASE
-                                                                   WHEN S.Date_sem == 2
-                                                                       THEN DATE(
-                                                                           ((S.Year_start_group + S.Date_year - 1) || '-09-01'),
-                                                                           '+180 day')
-                                                                   ELSE DATE(((S.Year_start_group + S.Date_year - 1) || '-09-01'))
-                                                                   END
-                                                        FROM Subjects S))
-                   THEN RAISE(ABORT, 'Оценка не может быть проставлена раньше, чем начнётся предмет!')
-               END;
-    /* Удаление старых оценок.*/
-    DELETE
-    FROM Grades
-    WHERE NEW.Discipline == Grades.Discipline
-      AND NEW.Student == Grades.Student;
+               WHEN NEW.Date_grade <= (SELECT CASE
+                                                  WHEN S.Date_sem == 2
+                                                      THEN DATE(
+                                                          ((S.Year_start_group + S.Date_year - 1) || '-09-01'),
+                                                          '+180 day')
+                                                  ELSE DATE(((S.Year_start_group + S.Date_year - 1) || '-09-01'))
+                                                  END
+                                       FROM Subjects S
+                                       WHERE NEW.Discipline == S.Discipline) THEN
+    RAISE (ABORT, 'Оценка не может быть проставлена раньше, чем начнётся предмет!')
+END;
+/* Удаление старых оценок.*/
+DELETE
+FROM Grades
+WHERE NEW.Discipline == Grades.Discipline
+  AND NEW.Student == Grades.Student;
 END;
