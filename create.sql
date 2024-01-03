@@ -57,7 +57,7 @@ CREATE TABLE Activity
 
 (
     ID_student       INTEGER                              NOT NULL,
-    Date_active      date                                 NOT NULL,
+    Date_active      date                                 NOT NULL DEFAULT date('now'),
     Year_start_group INTEGER(4)                           NOT NULL,
     Specialization   varchar(8)                           NOT NULL,
     Status           INTEGER(1) CHECK ( Status IN (0, 1)) NOT NULL,
@@ -225,12 +225,13 @@ BEGIN
                                FROM (SELECT *
                                      FROM Activity A
                                      WHERE NEW.Student == A.ID_student
+                                     ORDER BY A.Date_active desc
                                      LIMIT 1) AS filter_student
                                         JOIN Groups G ON filter_student.Year_start_group == G.Year_start AND
                                                          filter_student.Specialization == G.Specialization
                                         JOIN Subjects S on G.Year_start = S.Year_start_group and
                                                            G.Specialization = S.Specialization_group
-                               WHERE filter_student.Status != 0)
+                               WHERE filter_student.Status == 1)
                    THEN RAISE(ABORT,
                               'Студент не состоит в группе, которая занимается этим предметом! Или студент отчислен!')
                END;
@@ -245,11 +246,11 @@ BEGIN
                                                   END
                                        FROM Subjects S
                                        WHERE NEW.Discipline == S.Discipline) THEN
-    RAISE (ABORT, 'Оценка не может быть проставлена раньше, чем начнётся предмет!')
-END;
+                   RAISE(ABORT, 'Оценка не может быть проставлена раньше, чем начнётся предмет!')
+               END;
 /* Удаление старых оценок.*/
-DELETE
-FROM Grades
-WHERE NEW.Discipline == Grades.Discipline
-  AND NEW.Student == Grades.Student;
+    DELETE
+    FROM Grades
+    WHERE NEW.Discipline == Grades.Discipline
+      AND NEW.Student == Grades.Student;
 END;
