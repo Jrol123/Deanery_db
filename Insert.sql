@@ -24,16 +24,32 @@ VALUES (01, '2026-09-01', 2022, '02.03.01', 0);
 
 -- ТРЕБОВАНИЕ 3
 
-
-SELECT 'Teacher'                                                     as Status,
-       "Full Name"                                                   as "ФИО",
+SELECT 'Преподаватель'               as "Должность",
+       "Full Name"                   as "ФИО",
+       Gender                        as Пол,
        (SELECT age FROM Teacher_age) as "Возраст"
 FROM Teachers
 WHERE "Возраст" <= 30
 UNION
-SELECT 'Student'                                                     as Status,
-       "Full Name"                                                   as "ФИО",
+SELECT 'Студент'                     as "Должность",
+       "Full Name"                   as "ФИО",
+       Gender                        as Пол,
        (SELECT age FROM Student_age) as "Возраст"
 FROM Students
 WHERE "Возраст" <= 30;
 
+-- ТРЕБОВАНИЕ 4
+
+SELECT 'Преподаватель' as "Должность",
+       "Full Name"     as "ФИО",
+       Gender          as Пол,
+       "Date of birth" as "День рождения"
+FROM Teachers
+WHERE "Date of birth" <= date('2004-01-01')
+UNION
+SELECT 'Студент'       as "Должность",
+       "Full Name"     as "ФИО",
+       Gender          as Пол,
+       "Date of birth" as "Возраст"
+FROM Students
+WHERE "Date of birth" <= date('2004-01-01');
