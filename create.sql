@@ -75,13 +75,13 @@ CREATE TABLE Disciplines
 
 CREATE TABLE Subjects
 (
-    Discipline           varchar(100)                                             NOT NULL,
+    Discipline           varchar(100)                             NOT NULL,
     -- Для удобства будет лучше сразу сделать семестр.
-    Date_year            INTEGER(4)                                               NOT NULL,
-    Date_sem             INTEGER(1) CHECK ( Date_sem IN (1, 2, 3, 4, 5, 6, 7, 8)) NOT NULL,
-    Grade_type           INTEGER(1) CHECK ( Grade_type IN (1, 2))                 NOT NULL,
-    Year_start_group     INTEGER(4)                                               NOT NULL,
-    Specialization_group varchar(8)                                               NOT NULL,
+    Date_year            INTEGER(1) CHECK (1 <= Date_year <= 4 )  NOT NULL,
+    Date_sem             INTEGER(1) CHECK ( Date_sem IN (1, 2))   NOT NULL,
+    Grade_type           INTEGER(1) CHECK ( Grade_type IN (1, 2)) NOT NULL,
+    Year_start_group     INTEGER(4)                               NOT NULL,
+    Specialization_group varchar(8)                               NOT NULL,
     Teacher              INTEGER,
     PRIMARY KEY (Discipline, Year_start_group, Specialization_group, Date_year, Date_sem),
     FOREIGN KEY (Discipline) REFERENCES Disciplines (Name),
@@ -95,18 +95,14 @@ CREATE TABLE Subjects
 
 CREATE TABLE Grades
 (
-    Student              INTEGER                                NOT NULL,
-    Year_start           varchar(14)                            NOT NULL,
-    Specialization_group varchar(8)                             NOT NULL,
-    Discipline           varchar(100)                           NOT NULL,
-    Date_year            INTEGER(4)                             NOT NULL,
-    Date_sem             INTEGER(1)                             NOT NULL,
+    Student    INTEGER                              NOT NULL,
+    Discipline varchar(100)                         NOT NULL,
     -- Не допускается проставление оценки передним числом. (позднее текущего момента).
-    Date_add             date CHECK ( Date_add <= date('now') ) NOT NULL,
-    Value                INTEGER(1) CHECK ( 2 <= Value <= 5 )   NOT NULL,
-        PRIMARY KEY (Student, Year_start, Specialization_group, Discipline),
+    Date_grade date                                 NOT NULL DEFAULT (date('now')),
+    Grade      INTEGER(1) CHECK ( 2 <= Grade <= 5 ) NOT NULL,
+    PRIMARY KEY (Student, Discipline),
     FOREIGN KEY (Student) REFERENCES Students (ID_certificate),
-    FOREIGN KEY (Discipline, Specialization_group, Date_year, Date_sem) REFERENCES Subjects (Discipline, Specialization_group, Date_year, Date_sem)
+    FOREIGN KEY (Discipline) REFERENCES Disciplines (Name)
     -- Насколько необходимо постоянно писать NotNull, если в ForeignKey перечислены сразу все строки...
 );
 
@@ -234,18 +230,28 @@ BEGIN
                                                          filter_student.Specialization == G.Specialization
                                         JOIN Subjects S on G.Year_start = S.Year_start_group and
                                                            G.Specialization = S.Specialization_group
-                                        JOIN Grades Gr on S.Discipline = Gr.Discipline and
-                                                          S.Specialization_group = Gr.Specialization_group and
-                                                          S.Date_year = Gr.Date_year and S.Date_sem = Gr.Date_sem
                                WHERE filter_student.Status != 0)
                    THEN RAISE(ABORT,
                               'Студент не состоит в группе, которая занимается этим предметом! Или студент отчислен!')
+               END;
+    /*Оценка не может ставиться раньше начала предмета.*/
+    SELECT CASE
+               WHEN NOT EXISTS(SELECT *
+                               FROM Subjects S
+                               WHERE NEW.Discipline == S.Discipline
+                                 AND NEW.Date_grade <= (SELECT CASE
+                                                                   WHEN S.Date_sem == 2
+                                                                       THEN DATE(
+                                                                           ((S.Year_start_group + S.Date_year - 1) || '-09-01'),
+                                                                           '+180 day')
+                                                                   ELSE DATE(((S.Year_start_group + S.Date_year - 1) || '-09-01'))
+                                                                   END
+                                                        FROM Subjects S))
+                   THEN RAISE(ABORT, 'Оценка не может быть проставлена раньше, чем начнётся предмет!')
                END;
     /* Удаление старых оценок.*/
     DELETE
     FROM Grades
     WHERE NEW.Discipline == Grades.Discipline
-      AND NEW.Student == Grades.Student
-      AND NEW.Year_start == Grades.Year_start
-      AND NEW.Specialization_group == Grades.Specialization_group;
+      AND NEW.Student == Grades.Student;
 END;
