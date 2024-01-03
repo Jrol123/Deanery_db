@@ -111,7 +111,7 @@ CREATE TABLE Grades
 
 CREATE VIEW Teacher_age as
 SELECT year_diff - CASE
-                       WHEN (month_diff < 0 OR day_diff < 0) THEN 1
+                       WHEN (month_diff < 0 OR (month_diff == 0 and day_diff < 0)) THEN 1
                        ELSE 0
     END as age
 FROM (SELECT STRFTIME('%Y', date('now')) - STRFTIME('%Y', "Date of birth") as year_diff,
@@ -121,7 +121,7 @@ FROM (SELECT STRFTIME('%Y', date('now')) - STRFTIME('%Y', "Date of birth") as ye
 
 CREATE VIEW Student_age as
 SELECT year_diff - CASE
-                       WHEN (month_diff < 0 OR day_diff < 0) THEN 1
+                       WHEN (month_diff < 0 OR (month_diff == 0 and day_diff < 0)) THEN 1
                        ELSE 0
     END as age
 FROM (SELECT STRFTIME('%Y', date('now')) - STRFTIME('%Y', "Date of birth") as year_diff,
