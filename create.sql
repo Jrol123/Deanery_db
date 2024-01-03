@@ -21,7 +21,7 @@ CREATE TABLE Teachers
     'Full Name'     varchar(200)                                   NOT NULL,
     Gender          varchar(1) CHECK ( Gender IN ('m', 'f', 'o') ) NOT NULL,
     Has_degree      INTEGER CHECK (Has_degree IN (0, 1))           NOT NULL,
-    'Date of birth' date
+    'Date of birth' date                                           NOT NULL
 );
 
 CREATE TABLE Specializations
