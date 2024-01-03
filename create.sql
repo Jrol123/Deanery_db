@@ -7,6 +7,8 @@ DROP TABLE IF EXISTS Disciplines;
 DROP TABLE IF EXISTS Subjects;
 DROP TABLE IF EXISTS Grades;
 DROP VIEW IF EXISTS Specializations_merge;
+DROP VIEW IF EXISTS Teacher_age;
+DROP VIEW IF EXISTS Student_age;
 DROP TRIGGER IF EXISTS prevent_spec_deletion;
 DROP TRIGGER IF EXISTS prevent_group_deletion;
 DROP TRIGGER IF EXISTS try_spec_deletion;
@@ -54,10 +56,9 @@ CREATE TABLE Students
 
 
 CREATE TABLE Activity
-
 (
     ID_student       INTEGER                              NOT NULL,
-    Date_active      date                                 NOT NULL DEFAULT date('now'),
+    Date_active      date                                 NOT NULL DEFAULT (date('now')),
     Year_start_group INTEGER(4)                           NOT NULL,
     Specialization   varchar(8)                           NOT NULL,
     Status           INTEGER(1) CHECK ( Status IN (0, 1)) NOT NULL,
@@ -105,6 +106,29 @@ CREATE TABLE Grades
     FOREIGN KEY (Discipline) REFERENCES Disciplines (Name)
     -- Насколько необходимо постоянно писать NotNull, если в ForeignKey перечислены сразу все строки...
 );
+
+-- ПРЕДСТАВЛЕНИЯ
+
+CREATE VIEW Teacher_age as
+SELECT year_diff - CASE
+                       WHEN (month_diff < 0 OR day_diff < 0) THEN 1
+                       ELSE 0
+    END as age
+FROM (SELECT STRFTIME('%Y', date('now')) - STRFTIME('%Y', "Date of birth") as year_diff,
+             STRFTIME('%m', date('now')) - STRFTIME('%m', "Date of birth") as month_diff,
+             STRFTIME('%d', date('now')) - STRFTIME('%d', "Date of birth") as day_diff
+      FROM Teachers) as splicer;
+
+CREATE VIEW Student_age as
+SELECT year_diff - CASE
+                       WHEN (month_diff < 0 OR day_diff < 0) THEN 1
+                       ELSE 0
+    END as age
+FROM (SELECT STRFTIME('%Y', date('now')) - STRFTIME('%Y', "Date of birth") as year_diff,
+             STRFTIME('%m', date('now')) - STRFTIME('%m', "Date of birth") as month_diff,
+             STRFTIME('%d', date('now')) - STRFTIME('%d', "Date of birth") as day_diff
+      FROM Students) as splicer;
+
 
 -- ТРИГГЕРЫ
 
@@ -160,14 +184,28 @@ BEGIN
                END;
 END;
 
-/*Проверка перед добавлением студента в новую группу.
-  Подвязан ли студент к какой-то другой группе?
-  Если да, то создаётся новая запись об отписывании от предыдущей.*/
+
 CREATE TRIGGER relocate_student_fromGroup
     BEFORE INSERT
     ON Activity
     FOR EACH ROW
 BEGIN
+    SELECT CASE
+               WHEN NOT EXISTS(SELECT 1
+                               FROM (SELECT A.Status
+                                     FROM Activity A
+                                     WHERE NEW.ID_student == A.ID_student
+                                       AND NEW.Specialization == A.Specialization
+                                       AND NEW.Year_start_group == A.Year_start_group
+                                     ORDER BY A.Date_active desc
+                                     LIMIT 1) StatusFilter
+                               WHERE Status == 1)
+                   AND NEW.Status == 0
+                   THEN RAISE(ABORT, 'Студент не состоит в той группе, откуда вы пытаетесь его удалить!')
+               END;
+    /*Проверка перед добавлением студента в новую группу.
+      Подвязан ли студент к какой-то другой группе?
+      Если да, то создаётся новая запись об отписывании от предыдущей.*/
     INSERT
     INTO Activity (ID_student, Date_active, Year_start_group, Specialization, Status)
     SELECT ID_student, data, Year_start_group, Specialization, 0
