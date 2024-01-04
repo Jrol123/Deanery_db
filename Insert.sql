@@ -89,7 +89,10 @@ GROUP BY ID;
 -- ТРЕБОВАНИЕ 7
 
 -- CTE напрочь отказывается работать...
-SELECT "Full name", Gender, Specialization, Date_active
+SELECT "Full name"    as "ФИО",
+       Gender         as "Пол",
+       Specialization as "Направление",
+       Date_active    as "Дата поступления"
 FROM (SELECT ID_student as ID, Specialization, Date_active, Status
       FROM Activity
       WHERE Specialization == (SELECT Specialization as student_spec
