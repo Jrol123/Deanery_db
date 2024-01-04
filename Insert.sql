@@ -132,4 +132,5 @@ VALUES (01, 'Матан', date('now', '+3 month'), 4);
 SELECT *
 FROM Grades
 WHERE Student == 01
+  -- Если не нужен фильтр по дисциплинам — удалить
   AND Discipline in ('Матан');
