@@ -12,4 +12,4 @@ import sqlite3, datetime
 
 __author__ = 'Artemii Popovkin'
 
-__version__ = "0.6.4"
+__version__ = "0.8.0"

@@ -117,7 +117,19 @@ WHERE Status == 1;
 
 -- Требование 8
 
+INSERT INTO Disciplines (Name)
+VALUES ('Матан');
+INSERT INTO Subjects (Discipline, Date_year, Date_sem, Grade_type, Year_start_group, Specialization_group, Teacher)
+VALUES ('Матан', 2, 2, 1, 2022, '02.03.01', 1);
+INSERT into Grades (Student, Discipline, Date_grade, Grade)
+VALUES (01, 'Матан', date('now'), 4);
+INSERT into Grades (Student, Discipline, Date_grade, Grade)
+VALUES (01, 'Матан', date('now', '+3 month'), 4);
+
+
+-- Требование 9
+
 SELECT *
 FROM Grades
 WHERE Student == 01
-AND Discipline in ('Матан')
+  AND Discipline in ('Матан');
