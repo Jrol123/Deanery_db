@@ -1,17 +1,10 @@
-INSERT INTO Disciplines (Name)
-VALUES ('Матан');
-INSERT INTO Subjects (Discipline, Date_year, Date_sem, Grade_type, Year_start_group, Specialization_group, Teacher)
-VALUES ('Матан', 2, 2, 1, 2022, '02.03.01', 1);
-INSERT into Grades (Student, Discipline, Date_grade, Grade)
-VALUES (01, 'Матан', date('now'), 4);
-
 --ТРЕБОВАНИЕ 1
 
-INSERT INTO Disciplines (Name)
-VALUES ('Матан');
+INSERT INTO Specializations("code group", "code education", "code work", name)
+VALUES ('02', '03', '01', 'СЦТ');
 
-INSERT INTO Subjects (Discipline, Date_year, Date_sem, Grade_type, Year_start_group, Specialization_group, Teacher)
-VALUES ('Матан', 2, 2, 1, 2022, '02.03.01', 1);
+INSERT INTO Groups(Year_start, Specialization)
+VALUES (2022, '02.03.01');
 
 INSERT INTO Teachers ("Full Name", Gender, Has_degree, "Date of birth")
 VALUES ('Ларионов Андрей Игоревич', 'm', 0, '2000-09-18');
@@ -21,7 +14,6 @@ VALUES (01, 'Поповкин Артемий Андреевич', 'm', date('200
 
 INSERT INTO Students
 VALUES (101, 'Death', 'o', date('983-06-25'));
-
 
 -- ТРЕБОВАНИЕ 2
 
@@ -34,6 +26,8 @@ VALUES (01, '2026-09-01', 2022, '02.03.01', 0);
 
 INSERT INTO Activity (ID_student, Date_active, Year_start_group, Specialization, Status)
 VALUES (101, '2024-09-01', 2022, '02.03.01', 1);
+INSERT INTO Activity (ID_student, Date_active, Year_start_group, Specialization, Status)
+VALUES (101, '2026-09-01', 2022, '02.03.01', 0);
 
 -- ТРЕБОВАНИЕ 3
 
@@ -126,11 +120,36 @@ VALUES (01, 'Матан', date('now'), 4);
 INSERT into Grades (Student, Discipline, Date_grade, Grade)
 VALUES (01, 'Матан', date('now', '+3 month'), 4);
 
+INSERT INTO Disciplines (Name)
+VALUES ('Линал');
+INSERT INTO Subjects (Discipline, Date_year, Date_sem, Grade_type, Year_start_group, Specialization_group, Teacher)
+VALUES ('Линал', 2, 2, 1, 2022, '02.03.01', 1);
+INSERT INTO Grades (Student, Discipline, Date_grade, Grade)
+VALUES (101, 'Матан', date('now', '+3 month'), 5);
+INSERT INTO Grades (Student, Discipline, Date_grade, Grade)
+VALUES (101, 'Линал', date('now', '+3 month'), 5);
+
 
 -- Требование 9
 
 SELECT *
 FROM Grades
-WHERE Student == 01
+WHERE Student == 101
   -- Если не нужен фильтр по дисциплинам — удалить
   AND Discipline in ('Матан');
+
+-- Требование 10
+
+SELECT Discipline as "Предмет",
+       AVG(Grade)
+FROM (SELECT *
+      FROM (SELECT *
+            FROM Activity
+            WHERE Specialization == '02.03.01'
+            ORDER BY Date_active desc)
+      GROUP BY ID_student
+      HAVING Status == 1)
+         JOIN Grades on ID_student
+-- Если не нужен фильтр по дисциплинам — закомментировать
+WHERE Discipline == 'Линал'
+GROUP BY Discipline
