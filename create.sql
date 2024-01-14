@@ -19,10 +19,10 @@ DROP TRIGGER IF EXISTS relocate_student_fromGroup;
 CREATE TABLE Teachers
 (
     ID              INTEGER PRIMARY KEY AUTOINCREMENT,
-    'Full Name'     varchar(200)                                   NOT NULL,
-    Gender          varchar(1) CHECK ( Gender IN ('m', 'f', 'o') ) NOT NULL,
-    Has_degree      INTEGER CHECK (Has_degree IN (0, 1))           NOT NULL,
-    'Date of birth' date                                           NOT NULL
+    'Full Name'     varchar(200) CHECK ('Full Name' REGEXP '^[а-яА-ЯёЁ]+ [а-яА-ЯёЁ]+ [а-яА-ЯёЁ]+$') NOT NULL,
+    Gender          varchar(1) CHECK ( Gender IN ('m', 'f', 'o') )                                  NOT NULL,
+    Has_degree      INTEGER CHECK (Has_degree IN (0, 1))                                            NOT NULL,
+    'Date of birth' date                                                                            NOT NULL
 );
 
 CREATE TABLE Specializations
@@ -50,7 +50,7 @@ CREATE TABLE Groups
 CREATE TABLE Students
 (
     ID_certificate  INTEGER PRIMARY KEY UNIQUE,
-    'Full Name'     varchar(200)                                   NOT NULL,
+    'Full Name'     varchar(200) CHECK ('Full Name' REGEXP '^[а-яА-ЯёЁ]+ [а-яА-ЯёЁ]+ [а-яА-ЯёЁ]$') NOT NULL,
     Gender          varchar(1) CHECK ( Gender IN ('m', 'f', 'o') ) NOT NULL,
     'Date of birth' date
 );
@@ -136,7 +136,7 @@ SELECT A.ID_student                                as ID,
        "Full Name"                                 as "ФИО",
        Gender                                      as "Пол",
        Status                                      as "Статус",
-       Date_active as "Дата"
+       Date_active                                 as "Дата"
 FROM Activity A
          JOIN Students S on S.ID_certificate = A.ID_student;
 
@@ -230,7 +230,6 @@ BEGIN
             AND NEW.Status != 0);
 END;
 
--- Не протестировано
 /*Не допускается удаление дисциплин, связанных с существующими предметами.*/
 CREATE TRIGGER prevent_disc_deletion
     BEFORE DELETE
@@ -290,7 +289,7 @@ BEGIN
                                                   WHEN S.Date_sem == 2
                                                       THEN DATE(
                                                           ((S.Year_start_group + S.Date_year - 1) || '-09-01'),
-                                                          '+180 day')
+                                                          '+6 month')
                                                   ELSE DATE(((S.Year_start_group + S.Date_year - 1) || '-09-01'))
                                                   END
                                        FROM Subjects S
